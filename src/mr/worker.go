@@ -45,36 +45,35 @@ func ihash(key string) int {
 // main/mrworker.go calls this function.
 //
 func Worker(mapf func(string, string) []KeyValue,
-	reducef func(string, []string) string,id string) {
-	workerId := id
+	reducef func(string, []string) string) {
 	alive := true
 	attempt := 0
 
 	for alive {
 		attempt++
-		fmt.Println(workerId, " >worker ask", attempt)
-		job := RequireTask(workerId)
-		fmt.Println(workerId, "worker get job", job)
+		//fmt.Println(" >worker ask", attempt)
+		job := RequireTask()
+		//fmt.Println("worker get job", job)
 		switch job.JobType {
 		case MapJob:
 			{
 				DoMap(mapf, job)
-				fmt.Println("do map", job.JobId)
-				JobIsDone(workerId, job)
+				//fmt.Println("do map", job.JobId)
+				JobIsDone(job)
 			}
 		case ReduceJob:
 			if job.JobId >= 8 {
 				DoReduce(reducef, job)
-				fmt.Println("do reduce", job.JobId)
-				JobIsDone("kaka", job)
+				//fmt.Println("do reduce", job.JobId)
+				JobIsDone(job)
 			}
 		case WaittingJob:
-			fmt.Println("get waiting")
+			//fmt.Println("get waiting")
 			time.Sleep(time.Second)
 		case KillJob:
 			{
 				time.Sleep(time.Second)
-				fmt.Println("[Status] :", workerId, "terminated........")
+				//fmt.Println("[Status] :terminated........")
 				alive = false
 			}
 		}
@@ -105,18 +104,18 @@ func CallExample() {
 	ok := call("Coordinator.Example", &args, &reply)
 	if ok {
 		// reply.Y should be 100.
-		fmt.Printf("reply.Y %v\n", reply.Y)
+		//fmt.Printf("reply.Y %v\n", reply.Y)
 	} else {
-		fmt.Printf("call failed!\n")
+		//fmt.Printf("call failed!\n")
 	}
 }
 
 
-func RequireTask(workerId string) *Job {
+func RequireTask() *Job {
 	args := ExampleArgs{}
 	reply := Job{}
 	call("Coordinator.DistributeJob", &args, &reply)
-	fmt.Println("get response", &reply)
+	//fmt.Println("get response", &reply)
 	return &reply
 }
 //
@@ -138,11 +137,11 @@ func call(rpcname string, args interface{}, reply interface{}) bool {
 		return true
 	}
 
-	fmt.Println(err)
+	//fmt.Println(err)
 	return false
 }
 
-func JobIsDone(workerId string, job *Job) {
+func JobIsDone(job *Job) {
 	args := job
 	reply := &ExampleReply{}
 	call("Coordinator.JobIsDone", &args, &reply)

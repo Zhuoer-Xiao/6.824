@@ -1,6 +1,6 @@
 package mr
 import (
-	"fmt"
+	//"fmt"
 	"io/ioutil"
 	"log"
 	"strconv"
@@ -82,8 +82,8 @@ func (j *JobMetaHolder) checkJobDone() bool {
 			}
 		}
 	}
-	fmt.Printf("%d/%d map jobs are done, %d/%d reduce job are done\n",
-		mapDoneNum, mapDoneNum+mapUndoneNum, reduceDoneNum, reduceDoneNum+reduceUndoneNum)
+	//fmt.Printf("%d/%d map jobs are done, %d/%d reduce job are done\n",
+		//mapDoneNum, mapDoneNum+mapUndoneNum, reduceDoneNum, reduceDoneNum+reduceUndoneNum)
 
 	if (reduceDoneNum > 0 && reduceUndoneNum == 0) || (mapDoneNum > 0 && mapUndoneNum == 0) {
 		return true
@@ -96,7 +96,7 @@ func (j *JobMetaHolder) putJob(JobInfo *JobMetaInfo) bool {
 	jobId := JobInfo.JobPtr.JobId
 	meta, _ := j.MetaMap[jobId]
 	if meta != nil {
-		fmt.Println("meta contains job which id = ", jobId)
+		//fmt.Println("meta contains job which id = ", jobId)
 		return false
 	} else {
 		j.MetaMap[jobId] = JobInfo
@@ -122,10 +122,10 @@ func (c *Coordinator) Example(args *ExampleArgs, reply *ExampleReply) error {
 func (c *Coordinator) server() {
 	rpc.Register(c)
 	rpc.HandleHTTP()
-	//l, e := net.Listen("tcp", ":1234")
+	l, e := net.Listen("tcp", ":1234")
 	sockname := coordinatorSock()
 	os.Remove(sockname)
-	l, e := net.Listen("unix", sockname)
+	//l, e := net.Listen("unix", sockname)
 	if e != nil {
 		log.Fatal("listen error:", e)
 	}
@@ -139,7 +139,7 @@ func (c *Coordinator) server() {
 func (c *Coordinator) Done() bool {
 	mu.Lock()
 	defer mu.Unlock()
-	fmt.Println("+++++++++++++++++++++++++++++++++++++++++++")
+	//fmt.Println("+++++++++++++++++++++++++++++++++++++++++++")
 	return c.CoordinatorCondition == AllDone
 }
 
@@ -194,11 +194,11 @@ func (c *Coordinator) makeMapJobs(files []string) {
 			JobPtr:    &job,
 		}
 		c.jobMetaHolder.putJob(&jobMetaINfo)
-		fmt.Println("making map job :", &job)
+		//fmt.Println("making map job :", &job)
 		c.JobChannelMap <- &job
 	}
 	//defer close(c.JobChannelMap)
-	fmt.Println("done making map jobs")
+	//fmt.Println("done making map jobs")
 	c.jobMetaHolder.checkJobDone()
 }
   
@@ -211,12 +211,12 @@ func (c *Coordinator)generateJobId() int {
 func (c *Coordinator) DistributeJob(args *ExampleArgs, reply *Job) error {
 	mu.Lock()
 	defer mu.Unlock()
-	fmt.Println("coordinator get a request from worker :")
+	//fmt.Println("coordinator get a request from worker :")
 	if c.CoordinatorCondition == MapPhase {
 		if len(c.JobChannelMap) > 0 {//map任务非空
 			*reply = *<-c.JobChannelMap
 			if !c.jobMetaHolder.fireTheJob(reply.JobId) {
-				fmt.Printf("[duplicated job id]job %d is running\n", reply.JobId)
+				//fmt.Printf("[duplicated job id]job %d is running\n", reply.JobId)
 			}
 		} else {
 			reply.JobType = WaittingJob
@@ -229,7 +229,7 @@ func (c *Coordinator) DistributeJob(args *ExampleArgs, reply *Job) error {
 		if len(c.JobChannelReduce) > 0 {
 			*reply = *<-c.JobChannelReduce
 			if !c.jobMetaHolder.fireTheJob(reply.JobId) {
-				fmt.Printf("job %d is running\n", reply.JobId)
+				//fmt.Printf("job %d is running\n", reply.JobId)
 			}
 		} else {
 			reply.JobType = WaittingJob
@@ -253,19 +253,19 @@ func (c *Coordinator) JobIsDone(args *Job, reply *ExampleReply) error {
 		//prevent a duplicated work which returned from another worker
 		if ok && meta.condition == JobWorking {
 			meta.condition = JobDone
-			fmt.Printf("Map task on %d complete\n", args.JobId)
+			//fmt.Printf("Map task on %d complete\n", args.JobId)
 		} else {
-			fmt.Println("[duplicated] job done", args.JobId)
+			//fmt.Println("[duplicated] job done", args.JobId)
 		}
 		break
 	case ReduceJob:
-		fmt.Printf("Reduce task on %d complete\n", args.JobId)
+		//fmt.Printf("Reduce task on %d complete\n", args.JobId)
 		ok, meta := c.jobMetaHolder.getJobMetaInfo(args.JobId)
 		//prevent a duplicated work which returned from another worker
 		if ok && meta.condition == JobWorking {
 			meta.condition = JobDone
 		} else {
-			fmt.Println("[duplicated] job done", args.JobId)
+			//fmt.Println("[duplicated] job done", args.JobId)
 		}
 		break
 	default:
@@ -277,7 +277,7 @@ func (c *Coordinator) JobIsDone(args *Job, reply *ExampleReply) error {
 func (c *Coordinator) makeReduceJobs() {
 	for i := 0; i < c.ReducerNum; i++ {
 		id := c.generateJobId()
-		fmt.Println("making reduce job :", id)
+		//fmt.Println("making reduce job :", id)
 		JobToDo := Job{
 			JobType:   ReduceJob,
 			JobId:     id,
@@ -292,7 +292,7 @@ func (c *Coordinator) makeReduceJobs() {
 
 	}
 	//defer close(c.JobChannelReduce)
-	fmt.Println("done making reduce jobs")
+	//fmt.Println("done making reduce jobs")
 	c.jobMetaHolder.checkJobDone()
 }
 
