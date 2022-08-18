@@ -1,6 +1,6 @@
 package mr
 import (
-	//"fmt"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"strconv"
@@ -162,6 +162,7 @@ func MakeCoordinator(files []string, nReduce int) *Coordinator {
 	}
 
 	c.makeMapJobs(files)
+	go c.CrashDealer()
 	c.server()
 	return &c
 }
@@ -308,4 +309,34 @@ func TmpFileAssignHelper(whichReduce int, tmpFileDirectoryName string) []string 
 		}
 	}
 	return res
+}
+
+func (c *Coordinator) CrashDealer() {
+	for {
+		time.Sleep(time.Second * 2)
+		mu.Lock()
+		if c.CoordinatorCondition == AllDone {
+			mu.Unlock()
+		}
+
+		timenow := time.Now()
+		for _, v := range c.jobMetaHolder.MetaMap {
+			fmt.Println(v)
+			if v.condition == JobWorking {
+				fmt.Println("job", v.JobPtr.JobId, " working for ", timenow.Sub(v.StartTime))
+			}
+			if v.condition == JobWorking && time.Now().Sub(v.StartTime) > 5*time.Second {
+				fmt.Println("detect a crash on job ", v.JobPtr.JobId)
+				switch v.JobPtr.JobType {
+				case MapJob:
+					c.JobChannelMap <- v.JobPtr
+					v.condition = JobWaiting
+				case ReduceJob:
+					c.JobChannelReduce <- v.JobPtr
+					v.condition = JobWorking
+				}
+			}
+		}
+		mu.Unlock()
+	}
 }
