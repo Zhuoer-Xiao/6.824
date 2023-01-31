@@ -24,7 +24,7 @@ type ExampleReply struct {
 
 // Add your RPC definitions here.
 type WorkerRequest struct{
-	WorkerId string
+	WorkerId string·
 	WorkDone int
 }
 
